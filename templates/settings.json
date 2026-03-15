@@ -1,0 +1,74 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(*)",
+      "Bash(git:*)",
+      "Bash(python:*)",
+      "Bash(pytest:*)",
+      "Bash(pip:*)",
+      "Bash(cd:*)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(which:*)",
+      "WebFetch(*)",
+      "WebSearch(*)"
+    ]
+  },
+  "alwaysThinkingEnabled": true,
+  "env": {
+    "CLAUDE_CODE_EFFORT_LEVEL": "high"
+  },
+  "respectGitignore": true,
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/scripts/phasebook_context.py --mode=status"
+          }
+        ]
+      },
+      {
+        "matcher": "resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/scripts/phasebook_context.py --mode=status"
+          }
+        ]
+      },
+      {
+        "matcher": "clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/scripts/phasebook_context.py --mode=phase-context"
+          }
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/scripts/phasebook_context.py --mode=compact-state"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "HOOK_INPUT=$(cat); if [ -f .phasebook-task ]; then echo \"$HOOK_INPUT\" | python3 .claude/scripts/token_usage.py --task=$(cat .phasebook-task); else echo \"$HOOK_INPUT\" | python3 .claude/scripts/token_usage.py; fi"
+          }
+        ]
+      }
+    ],
+    "Notification": []
+  }
+}

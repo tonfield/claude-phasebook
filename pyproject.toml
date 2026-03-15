@@ -1,0 +1,22 @@
+[project]
+name = "phasebook"
+version = "0.1.0"
+description = "Phased workflow framework for Claude Code"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+review = ["openai", "google-genai"]
+
+[project.scripts]
+phasebook = "phasebook.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
