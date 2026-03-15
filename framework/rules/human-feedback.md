@@ -6,8 +6,8 @@ description: Handles >> feedback markers, QA sections, delta blocks, and action 
 
 Before producing any new artifact version:
 1. Find all lines containing `>>`
-2. Interpret from context: feedback → incorporate; question → answer;
-   approval → keep; override → accept and log
+2. Interpret from context: feedback -> incorporate; question -> answer;
+   approval -> keep; override -> accept and log
 3. Remove resolved `>>` markers
 4. List addressed items in review summary
 
@@ -32,7 +32,7 @@ When `>>` asks a question, answer in TWO places:
 After revising, add `[!DELTA]` after the status line:
 
 ```
-> [!DELTA] Round N → Round N+1
+> [!DELTA] Round N -> Round N+1
 >
 > **Modified:**
 > - Section 3d: Rewrote ISK tax model

@@ -19,7 +19,7 @@ During prompt optimization, assess scope before decomposability:
 | Sub-areas share no domain context, terminology, or constraints | **Recommend split** — these are separate tasks bundled together |
 | Sub-areas are facets of one coherent topic | Continue to decomposition assessment |
 
-Split = separate pipeline tasks that can run through the full pipeline
+Split = separate phasebook tasks that can run through the full phasebook
 independently. Downstream phases (design, plan) reference the split
 tasks' artifacts via the `depends:` field in the task file.
 
@@ -30,7 +30,7 @@ tasks' artifacts via the `depends:` field in the task file.
    Reason: <why these are independent>.
    Downstream: create a design/plan task with depends: <all slugs>.`
 2. Return task to review/ (worker cannot create tasks — user decides).
-3. User creates the split tasks via `/add` and a synthesis task that
+3. User creates the split tasks via `/draft` and a synthesis task that
    references them. User archives or repurposes the original.
 
 **Step 2 — Decomposition assessment (for coherent tasks):**
@@ -48,7 +48,7 @@ CLAUDE.md, codebase) is fine. Shared write state is not.
 
 **Independence check:** For each pair of sub-areas, verify they don't
 share writable surfaces (same DB table, same config section, same file
-for modifications). Shared writable targets → merge or sequence.
+for modifications). Shared writable targets -> merge or sequence.
 
 ### Decomposition Step
 
@@ -92,7 +92,7 @@ Insert after prompt optimization, before drafting the artifact.
 **Layer 2 — Fan-out with dependency contracts:**
 
 4. **Classify independence.** For each pair: does A need B's output? If
-   yes → merge or sequence them. Only truly independent sub-areas fan out.
+   yes -> merge or sequence them. Only truly independent sub-areas fan out.
 5. **Build briefings.** One per sub-area (see Briefing Template). Include
    the shared context map in every briefing.
 6. **Dispatch.** Launch Agent subagents in parallel (all independent ones
@@ -104,7 +104,7 @@ Insert after prompt optimization, before drafting the artifact.
 
 8. **Validate dependency contracts.** Walk each subagent's dependency
    table. Check against other subagents' findings and the shared context
-   map. Mismatches → investigate (orchestrator reads the relevant
+   map. Mismatches -> investigate (orchestrator reads the relevant
    file/source directly, or dispatches a targeted follow-up subagent
    for a specific question).
 9. **Synthesize.** Orchestrator combines deliverables into the phase
@@ -154,7 +154,7 @@ When integration verifier returns BLOCKING findings:
 2. **Apply fix.** One fix cycle per round.
 3. **Re-verify** if fix touched cross-area content (dispatch verifier
    again with updated artifact + same raw outputs).
-4. **Max 2 remediation loops.** If still blocking → escalate.
+4. **Max 2 remediation loops.** If still blocking -> escalate.
 
 **Escalation for decomposition failure:**
 
@@ -331,18 +331,18 @@ The orchestrator — not a subagent — writes the final artifact.
 1. Read all structured returns (they're compact — ~1-2k tokens each).
 2. **Dependency contract validation:** Walk each subagent's dependency
    table. Cross-check every assumption against the target sub-area's
-   actual findings. Mismatches → investigate directly or dispatch
+   actual findings. Mismatches -> investigate directly or dispatch
    targeted follow-up.
 3. **Contract compliance check** (Design/Plan): Where subagents flagged
    deviations from the interface skeleton, decide: update the skeleton
    or rewrite the section to comply. Do not leave conflicting interfaces
    in the artifact.
-4. **URGENT cross-reference triage:** Any URGENT flags → assess whether
+4. **URGENT cross-reference triage:** Any URGENT flags -> assess whether
    decomposition is still valid. If a discovery invalidates the shared
    context map, consider re-decomposition or sequencing.
 5. **Gap check:** Walk the original task requirements. Is every
    requirement covered by at least one sub-area's findings? Missing
-   coverage → orchestrator fills the gap inline or notes it.
+   coverage -> orchestrator fills the gap inline or notes it.
 6. **Integration layer** (Design/Plan): Write the integration section
    that connects sub-area outputs. Sub-areas design components;
    the orchestrator designs how they fit together.
@@ -358,7 +358,7 @@ The orchestrator — not a subagent — writes the final artifact.
 
 Subagents inherit the phase's model routing. Research/Design/Plan
 subagents use Opus (judgment work). Override only if a sub-area is
-purely mechanical (e.g., codebase mapping → Sonnet is sufficient).
+purely mechanical (e.g., codebase mapping -> Sonnet is sufficient).
 Integration verifier always uses Opus.
 
 ### Cost Awareness

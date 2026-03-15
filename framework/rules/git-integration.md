@@ -28,4 +28,4 @@ Never `git add .` or `git add -A`. Stage only the current task's
 slug-namespaced artifacts and task file.
 
 If commit fails (index lock, HEAD moved), retry once.
-No remote push during pipeline. User pushes when ready.
+No remote push during phasebook. User pushes when ready.
