@@ -117,15 +117,15 @@ The review cycle is the core quality mechanism. It runs inside every phase and k
 ```mermaid
 flowchart TD
     A[Draft artifact] --> B[Pass 1: External models + Internal panel]
-    B --> C[Fix findings]
+    B --> C[Fix blocking findings]
     C --> D[Pass 2: Gap analysis + Validation]
-    D --> E[Fix findings]
-    E --> F{Clean cycle?}
-    F -->|No| B
-    F -->|Yes| G[Challenge gate]
-    G --> H{Clean?}
-    H -->|No| B
-    H -->|Yes| I[Phase complete]
+    D --> E[Fix blocking findings]
+    E --> F{Had any\nblocking findings?}
+    F -->|Yes| B
+    F -->|No| G[Challenge gate: Adversarial review]
+    G --> H{Blocking\nfindings?}
+    H -->|Yes| I[Fix findings] --> B
+    H -->|No| J[Phase complete]
 ```
 
 ### Step 1: Risk classification
