@@ -124,14 +124,34 @@ flowchart TD
         Int["Internal panel\n(3-5 specialist roles)"]
     end
 
-    Pass1 --> Synth[Synthesize findings\nBLOCKING / ADVISORY]
-    Synth --> Fix1[Fix accepted findings]
-    Fix1 --> Pass2["Pass 2: Gap analysis\n+ invariant sweep + contract verification"]
-    Pass2 --> Fix2[Fix accepted findings]
-    Fix2 --> Check{Any fixes\nthis cycle?}
+    subgraph s1 [" "]
+        Synth[Synthesize findings\nBLOCKING / ADVISORY]
+        Synth --> Fix1[Fix accepted findings]
+    end
+
+    Pass1 --> Synth
+
+    Fix1 --> Pass2
+
+    subgraph Pass2 [" Pass 2 — validation "]
+        direction LR
+        Gaps["Gap analysis\n(what reviewers missed)"]
+        Inv["Invariant sweep\n+ contract verification"]
+    end
+
+    subgraph s2 [" "]
+        Fix2[Fix accepted findings]
+        Fix2 --> Check{Any fixes\nthis cycle?}
+    end
+
+    Pass2 --> Fix2
+
     Check -->|No| CG["Challenge gate\n(adversarial review)"]
-    CG --> Done["Phase complete ✓"]
-    Check -->|"Yes"| Restart["↑ Restart from Pass 1"]
+    CG --> CGCheck{Blocking\nfindings?}
+    CGCheck -->|No| Done["Phase complete ✓"]
+    CGCheck -->|Yes| Restart2["↑ Fix + restart"]
+    Restart2 --> Pass1
+    Check -->|Yes| Restart["↑ Restart from Pass 1"]
     Restart --> Pass1
 ```
 
@@ -227,7 +247,7 @@ Triggers when both passes are clean OR always for HIGH risk tasks. An adversaria
 - **Dangerous omissions** — what failure modes are conspicuously absent?
 - **Coupling and blast radius** — what breaks when this ships?
 
-Blocking findings loop back through another fix and restart check.
+Blocking findings trigger a fix cycle and restart the full sequence from Pass 1.
 
 ### Step 7: Complete
 
