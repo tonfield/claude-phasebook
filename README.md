@@ -1,27 +1,57 @@
 # phasebook
 
-A phased workflow framework for [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Structures AI-driven work into five phases — **Research, Design, Plan, Execute, Learn** — with built-in review cycles, external model reviews, and task tracking.
+A phased workflow framework for [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Structures AI-driven work into five phases — **Research, Design, Plan, Execute, Learn** — with multi-model review cycles, specialist panels, and task tracking.
+
+```mermaid
+flowchart LR
+    R[Research] --> D[Design] --> P[Plan] --> E[Execute] --> L[Learn]
+
+    subgraph cycle [" Review Cycle — runs inside every phase "]
+        direction TB
+        Draft[Draft artifact] --> P1
+
+        subgraph P1 [" Pass 1 "]
+            direction LR
+            Ext["External models\n(Gemini, GPT, Grok,\nMiniMax, Kimi, ...)"]
+            Int["Internal panel\n(3-5 specialist roles)"]
+        end
+
+        P1 --> Fix1[Fix cycle]
+        Fix1 --> P2
+
+        subgraph P2 [" Pass 2 "]
+            direction LR
+            Gaps["Gap analysis"]
+            Inv["Invariant sweep"]
+            Contract["Contract verification"]
+        end
+
+        P2 --> Check{Fixes in\nthis cycle?}
+        Check -->|Yes| P1
+        Check -->|No| CG["Challenge gate\n(adversarial review)"]
+        CG --> Done[Complete]
+    end
+```
 
 ## What it does
 
 Phasebook turns Claude Code into a disciplined engineering workflow. Each task moves through phases, with review gates between them. You control the pace: auto-advance phases you trust, pause for review on phases that need human judgment.
 
-```
-Research → Design → Plan → Execute → Learn
-```
-
 **Key features:**
-- Task queue with priority and per-phase review gates
-- Multi-model external review panel (Gemini, GPT, Grok, etc.)
-- Internal review panel with specialist roles
-- Obligation ledger for tracking claims and assumptions
-- Token cost tracking per task and per phase
-- Multiple workers can process tasks concurrently on main
+- **Phased workflow** — Research → Design → Plan → Execute → Learn, each with structured artifacts
+- **Multi-model external reviews** — 4-7 AI models review every artifact in parallel, catching different things
+- **Specialist internal panel** — 3-5 role-based reviewers (logical consistency, completeness, codebase verification, domain accuracy, risk analysis)
+- **Cyclical review** — fix cycles restart the review until clean, up to 3 restarts
+- **Obligation ledger** — tracks every claim, assumption, and integration point through the pipeline
+- **Task decomposition** — fan-out/fan-in for tasks too large for a single context window
+- **Token cost tracking** — per task, per phase, per model
+- **Concurrent workers** — multiple Claude Code sessions process tasks in parallel on main
+- **Human feedback** — `>>` markers in any artifact for inline feedback, questions, or overrides
 
 ## Install
 
 ```bash
-git clone <repo-url> ~/projects/phasebook
+git clone https://github.com/tonfield/claude-phasebook.git ~/projects/phasebook
 cd ~/projects/phasebook
 pip install -e .
 ```
@@ -80,7 +110,7 @@ The strip is 4 characters, one per phase (R D P E). Each position is either:
 | `+` | Auto-advance to next phase |
 | `R/D/P/E` | Phase completed |
 
-Both `-` and `+` get the same review cycle. The difference is whether a human gates the transition.
+Both `-` and `+` get the **same review cycle**. The difference is whether a human gates the transition afterward.
 
 Common patterns:
 ```
@@ -94,24 +124,149 @@ Common patterns:
 
 | Phase | Purpose | Artifact |
 |-------|---------|----------|
-| **Research** | Investigate, gather evidence | `phasebook/research/<date>-<slug>.md` |
-| **Design** | Architecture, alternatives, decisions | `phasebook/designs/<date>-<slug>.md` |
-| **Plan** | Step-by-step implementation plan | `phasebook/plans/<date>-<slug>.md` |
-| **Execute** | Implement code per plan steps | Code changes + `phasebook/executions/` |
-| **Learn** | Update system knowledge, docs | `phasebook/learnings/<date>-<slug>.md` |
+| **Research** | Investigate, gather evidence, verify assumptions | `phasebook/research/<date>-<slug>.md` |
+| **Design** | Architecture, alternatives, trade-offs, decisions | `phasebook/designs/<date>-<slug>.md` |
+| **Plan** | Step-by-step implementation with risk levels and verification criteria | `phasebook/plans/<date>-<slug>.md` |
+| **Execute** | Implement code per plan steps, dispatched to subagents | Code changes + `phasebook/executions/` |
+| **Learn** | Extract patterns, update system knowledge, docs | `phasebook/learnings/<date>-<slug>.md` |
 
-### Review cycle
+Each phase begins with **prompt optimization** — enriching the raw task with relevant context from CLAUDE.md, prior artifacts, and the codebase. Phases scale by adjusting depth, not by skipping phases.
 
-Every phase goes through a review cycle before completion:
+---
 
-1. **Pass 1** — External models (via `external_review.py`) + internal specialist panel
-2. **Pass 2** — Gap analysis + self-review + invariant sweep
-3. **Challenge gate** — Adversarial review (HIGH risk or both passes clean)
-4. Fix cycles restart the sequence until clean
+## The review cycle
 
-Review depth scales with risk level (LOW / MEDIUM / HIGH).
+The review cycle is the core quality mechanism. It runs inside every phase and keeps cycling until the artifact is clean.
 
-### Feedback
+### Overview
+
+```
+Pass 1 (External + Internal) → Fix → Pass 2 (Gaps + Validation) → Fix → Restart?
+                                                                          ↓ No
+                                                                    Challenge Gate
+                                                                          ↓
+                                                                      Complete
+```
+
+If **any** pass had fixes during a cycle, the entire sequence restarts from Pass 1. Maximum 3 restarts — after that, the task moves to `review/` for human intervention.
+
+### Risk levels
+
+Review depth scales with risk. Every phase classifies its risk:
+
+| Level | Characteristics | Review depth |
+|-------|----------------|--------------|
+| **LOW** | Single module, clear scope | External models only + Pass 2 |
+| **MEDIUM** | Multi-module, new interfaces (default) | External + internal panel in parallel + Pass 2 |
+| **HIGH** | Critical paths, shared state, invariant-adjacent | External + internal + Pass 2 + adversarial challenge |
+
+### Pass 1: External + internal reviews
+
+Pass 1 runs two review tracks **in parallel**:
+
+#### External review panel
+
+Multiple AI models review the artifact independently via `external_review.py`. The script calls 4-7 models in parallel and returns structured findings.
+
+Three review modes:
+
+| Mode | Used for | Focus |
+|------|----------|-------|
+| `review` | Research, Design, Plan | Logical soundness, correctness, completeness, assumptions, alternatives |
+| `code` | Execute | Bugs, contract violations, edge cases, test coverage, data flow |
+| `challenge` | Challenge gate | Confirmation bias, wrong abstraction, dangerous omissions, blast radius |
+
+Models are selected by risk level from a configurable roster (`review_models.json`):
+
+```
+LOW:    4 models  (e.g. Gemini, GLM, Hunter, Kimi)
+MEDIUM: 5 models  (+ GPT)
+HIGH:   6+ models (+ adversarial challenger)
+```
+
+Each model grades the artifact (A-F) and returns BLOCKING and ADVISORY findings with quoted evidence.
+
+#### Internal specialist panel
+
+Claude generates a tailored panel of 3-5 specialist reviewers based on the artifact's content:
+
+| Role | Focus |
+|------|-------|
+| **Logical Consistency** | Contradictions, circular reasoning, edge cases, race conditions |
+| **Completeness** | Missing paths, unhandled errors, gaps in coverage |
+| **Codebase Verification** | Reads actual source code to verify every claimed function, signature, and hook point |
+| **Domain Accuracy** | Spawns named domain specialists (e.g. options pricing, distributed systems) |
+| **Risk & Assumptions** | Unstated assumptions, failure modes, performance costs, external service resilience |
+| **Testability** | Can this be tested? What needs mocking? Test strategy for non-trivial behavior |
+| **Plan Compliance** | Does the implementation match the specification? |
+| **Verification Coverage** | Test quality, assertion coverage, reproducibility |
+| **Integration Impact** | Cross-module dependencies, upstream/downstream effects |
+
+Each specialist runs as a subagent with specific dimensions, exclusions, and personas — ensuring focused, non-overlapping coverage.
+
+#### Synthesis
+
+All findings (external + internal) are pooled into a single synthesis:
+- Each finding classified as **BLOCKING** or **ADVISORY**
+- Cross-reviewer disagreements flagged (e.g. external says blocking, internal says fine)
+- Accepted findings trigger a **fix cycle** before moving to Pass 2
+
+### Pass 2: Validation
+
+After fixes from Pass 1, Pass 2 runs a different set of checks:
+
+1. **Gap analysis** — A dedicated agent reads the full artifact AND all Pass 1 findings, looking for what every reviewer missed: unchallenged assumptions, cross-cutting concerns, internal contradictions, missing perspectives
+2. **Self-review** — Correctness, completeness, domain risks
+3. **Interface verification** — For designs/plans: verify every claimed function exists, signatures match, return types are correct (reads actual source code)
+4. **Invariant sweep** — Walk every architectural invariant and design constraint in CLAUDE.md — not selectively, the full list
+5. **Documentation consistency** — Check against architecture docs for contradictions
+6. **Contract verification** — Walk the task's requirements and anti-goals, confirm each is satisfied
+7. **Obligation ledger** — Verify all tracked claims, assumptions, and traces
+
+Accepted findings trigger another fix cycle, then check for cyclical restart.
+
+### Challenge gate
+
+Triggers when both passes are clean OR always for HIGH risk tasks. An adversarial model reviews the artifact at a strategic level — questioning the framing, not the details:
+
+- Confirmation bias — is evidence selectively presented?
+- Wrong abstraction — is this solving the right problem?
+- Dangerous omissions — what failure modes are conspicuously absent?
+- Coupling and blast radius — what breaks when this ships?
+
+### Micro-learn
+
+After each review round, accepted findings that are generalizable are extracted and appended to CLAUDE.md as Known Patterns or Known Gotchas — building project memory over time.
+
+---
+
+## Obligation ledger
+
+The obligation ledger tracks factual claims and assumptions made during any phase, preventing the "I'll verify that later" problem.
+
+| Type | Example | Resolution |
+|------|---------|-----------|
+| **CLAIM** | "scanner.py calls calculate_threshold()" | Read source, verify signature |
+| **NEGATION** | "no other callers of _rebuild_cache()" | Exhaustive grep, document search scope |
+| **ASSUMPTION** | "FlexQuery has access to exit_rule" | Test, verify, or flag as unverified |
+| **TRACE** | "entry_cost flows: transform → db → dashboard" | Verify each hop in the chain |
+| **FIX_IMPACT** | "changed parameter X that has dependents" | Check each caller/consumer |
+
+Evidence must include the tool command and result — not just a file:line pointer. Each phase has an "unverified budget" — Execute has zero tolerance; Research allows bounded assumptions.
+
+## Task decomposition
+
+For tasks too large for a single context window (3+ independent sub-areas), phasebook decomposes work using a fan-out/fan-in pattern:
+
+1. **Shared context map** — Orchestrator builds a domain map / interface skeleton / change surface
+2. **Fan-out** — Independent sub-areas dispatched to parallel subagents with structured briefings
+3. **Dependency contracts** — Each subagent declares assumptions about other sub-areas
+4. **Synthesis** — Orchestrator combines deliverables, validates contracts, writes the artifact
+5. **Integration verification** — Dedicated verifier checks fidelity, contradictions, and dropped information
+
+Max 2 remediation loops before escalating to re-decomposition or sequenced execution.
+
+## Feedback
 
 Add `>>` to any file in `phasebook/` to leave feedback. The worker reads intent from context — feedback, question, approval, or override — and resolves markers in the next revision.
 
@@ -120,6 +275,10 @@ Add `>>` to any file in `phasebook/` to leave feedback. The worker reads intent 
 >> Why not use WebSocket instead of polling?
 >> Approved, move forward
 ```
+
+If a completed phase's artifact has unresolved `>>` markers when the worker picks up the task, it automatically reverts that phase and re-runs it to address the feedback.
+
+---
 
 ## CLI commands
 
@@ -160,20 +319,38 @@ Use these inside Claude Code conversations:
 | `/review` | Run external + internal review panel on an artifact |
 | `/optimize <topic>` | Optimize a prompt, then execute it |
 
-## External reviews
+## External review setup
 
-Phasebook can call external AI models to review artifacts. Configure models in `.claude/scripts/review_models.json` and API keys in `.claude/scripts/api_keys.json` (gitignored).
+Phasebook calls external AI models to review artifacts. The model roster and providers are configured in `.claude/scripts/review_models.json`.
 
-Supported providers:
-- **Gemini** (native SDK with thinking)
-- **OpenAI-compatible** (Kilocode/OpenRouter, Z.AI, or any compatible endpoint)
+### Supported providers
+
+| Provider | SDK | Endpoint |
+|----------|-----|----------|
+| **Gemini** | Native (`google-genai`) with thinking support | `generativelanguage.googleapis.com` |
+| **MiniMax** | OpenAI-compatible | `api.minimax.io/v1` |
+| **Kilocode** | OpenAI-compatible (OpenRouter) | `api.kilo.ai` |
+| **Z.AI** | OpenAI-compatible | `api.z.ai` |
+| Any OpenAI-compatible | OpenAI SDK | Custom `base_url` |
+
+Adding a new model on an existing provider requires only a JSON entry. Adding a new provider SDK type requires Python changes.
+
+### API keys
+
+Resolution order:
+1. `~/.config/phasebook/api_keys.json` (machine-wide, all projects)
+2. Environment variables (`GEMINI_API_KEY`, etc.)
+3. `.claude/scripts/api_keys.json` (project-local, gitignored)
 
 ```bash
 # Install review dependencies
 pip install -e ".[review]"
 
-# Check available models
+# Check available models and API key status
 python3 .claude/scripts/external_review.py --list-models
+
+# Dry run a review
+python3 .claude/scripts/external_review.py artifact.md --risk MEDIUM --dry-run
 ```
 
 ## Project structure after `phasebook init`
@@ -199,13 +376,13 @@ your-project/
     │   ├── review/
     │   ├── completed/
     │   └── archived/
-    ├── research/
+    ├── research/                ← Phase artifacts
     ├── designs/
     ├── plans/
     ├── executions/
     ├── learnings/
-    ├── reviews/
-    ├── obligations/
+    ├── reviews/                 ← Review synthesis files
+    ├── obligations/             ← Obligation ledger files
     ├── tokens/                  ← Per-task cost tracking
     └── token-usage.json         ← Lifetime cost aggregate
 ```
