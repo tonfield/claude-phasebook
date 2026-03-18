@@ -3,40 +3,11 @@
 A phased workflow framework for [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Structures AI-driven work into five phases — **Research, Design, Plan, Execute, Learn** — with multi-model review cycles, specialist panels, and task tracking.
 
 ```mermaid
-flowchart TB
-    subgraph phases [" Task phases "]
-        direction LR
-        R[Research] --> D[Design] --> P[Plan] --> E[Execute] --> L[Learn]
-    end
-
-    phases ~~~ cycle
-
-    subgraph cycle [" Review cycle — runs inside every phase "]
-        direction TB
-        Draft[Draft artifact] --> Pass1
-
-        subgraph Pass1 [" Pass 1 — External + Internal "]
-            direction LR
-            Ext["External models\n(Gemini, GPT, Grok,\nMiniMax, Kimi, ...)"]
-            Int["Internal panel\n(3-5 specialist roles)"]
-        end
-
-        Pass1 --> Fix1[Fix accepted findings]
-        Fix1 --> Pass2
-
-        subgraph Pass2 [" Pass 2 — Gaps + Validation "]
-            direction LR
-            Gaps["Gap analysis\n(what reviewers missed)"]
-            Inv["Invariant sweep\n+ contract verification"]
-        end
-
-        Pass2 --> Fix2[Fix accepted findings]
-        Fix2 --> Check{Any fixes\nthis cycle?}
-        Check -->|Yes, restart| Pass1
-        Check -->|No| CG["Challenge gate\n(adversarial review)"]
-        CG --> Done[Phase complete]
-    end
+flowchart LR
+    R[Research] --> D[Design] --> P[Plan] --> E[Execute] --> L[Learn]
 ```
+
+> Each phase runs a full **review cycle** before advancing — see [The review cycle](#the-review-cycle) below.
 
 ## What it does
 
@@ -142,6 +113,22 @@ Each phase begins with **prompt optimization** — enriching the raw task with r
 ## The review cycle
 
 The review cycle is the core quality mechanism. It runs inside every phase and keeps cycling until the artifact is clean. The sequence is always: **Pass 1 → Fix → Pass 2 → Fix → Restart check → Challenge gate → Complete.**
+
+```mermaid
+flowchart TD
+    Draft[Draft artifact]
+    Draft --> Ext["Pass 1a: External models\n(Gemini, GPT, Grok, MiniMax, Kimi, ...)"]
+    Draft --> Int["Pass 1b: Internal panel\n(3-5 specialist roles)"]
+    Ext --> Synth[Synthesize findings]
+    Int --> Synth
+    Synth --> Fix1["Fix accepted findings"]
+    Fix1 --> Gaps["Pass 2: Gap analysis\n+ invariant sweep\n+ contract verification"]
+    Gaps --> Fix2["Fix accepted findings"]
+    Fix2 --> Check{Any fixes\nthis cycle?}
+    Check -->|"Yes → restart"| Ext
+    Check -->|No| CG["Challenge gate\n(adversarial review)"]
+    CG --> Done["Phase complete ✓"]
+```
 
 ### Step 1: Risk classification
 
