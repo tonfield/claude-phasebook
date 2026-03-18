@@ -116,43 +116,16 @@ The review cycle is the core quality mechanism. It runs inside every phase and k
 
 ```mermaid
 flowchart TD
-    Draft[Draft artifact] --> Pass1
-
-    subgraph Pass1 [" Pass 1 — parallel reviews "]
-        direction LR
-        Ext["External models\n(Gemini, GPT, Grok,\nMiniMax, Kimi, ...)"]
-        Int["Internal panel\n(3-5 specialist roles)"]
-    end
-
-    subgraph s1 [" "]
-        Synth[Synthesize findings\nBLOCKING / ADVISORY]
-        Synth --> Fix1[Fix accepted findings]
-    end
-
-    Pass1 --> Synth
-
-    Fix1 --> Pass2
-
-    subgraph Pass2 [" Pass 2 — validation "]
-        direction LR
-        Gaps["Gap analysis\n(what reviewers missed)"]
-        Inv["Invariant sweep\n+ contract verification"]
-    end
-
-    subgraph s2 [" "]
-        Fix2[Fix accepted findings]
-        Fix2 --> Check{Any fixes\nthis cycle?}
-    end
-
-    Pass2 --> Fix2
-
-    Check -->|No| CG["Challenge gate\n(adversarial review)"]
-    CG --> CGCheck{Blocking\nfindings?}
-    CGCheck -->|No| Done["Phase complete ✓"]
-    CGCheck -->|Yes| Restart2["↑ Fix + restart"]
-    Restart2 --> Pass1
-    Check -->|Yes| Restart["↑ Restart from Pass 1"]
-    Restart --> Pass1
+    A[Draft artifact] --> B[Pass 1: External models + Internal panel]
+    B --> C[Fix findings]
+    C --> D[Pass 2: Gap analysis + Validation]
+    D --> E[Fix findings]
+    E --> F{Clean cycle?}
+    F -->|No| B
+    F -->|Yes| G[Challenge gate]
+    G --> H{Clean?}
+    H -->|No| B
+    H -->|Yes| I[Phase complete]
 ```
 
 ### Step 1: Risk classification
