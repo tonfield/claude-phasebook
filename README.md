@@ -3,33 +3,38 @@
 A phased workflow framework for [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Structures AI-driven work into five phases — **Research, Design, Plan, Execute, Learn** — with multi-model review cycles, specialist panels, and task tracking.
 
 ```mermaid
-flowchart LR
-    R[Research] --> D[Design] --> P[Plan] --> E[Execute] --> L[Learn]
+flowchart TB
+    subgraph phases [" Task phases "]
+        direction LR
+        R[Research] --> D[Design] --> P[Plan] --> E[Execute] --> L[Learn]
+    end
 
-    subgraph cycle [" Review Cycle — runs inside every phase "]
+    phases ~~~ cycle
+
+    subgraph cycle [" Review cycle — runs inside every phase "]
         direction TB
-        Draft[Draft artifact] --> P1
+        Draft[Draft artifact] --> Pass1
 
-        subgraph P1 [" Pass 1 "]
+        subgraph Pass1 [" Pass 1 — External + Internal "]
             direction LR
             Ext["External models\n(Gemini, GPT, Grok,\nMiniMax, Kimi, ...)"]
             Int["Internal panel\n(3-5 specialist roles)"]
         end
 
-        P1 --> Fix1[Fix cycle]
-        Fix1 --> P2
+        Pass1 --> Fix1[Fix accepted findings]
+        Fix1 --> Pass2
 
-        subgraph P2 [" Pass 2 "]
+        subgraph Pass2 [" Pass 2 — Gaps + Validation "]
             direction LR
-            Gaps["Gap analysis"]
-            Inv["Invariant sweep"]
-            Contract["Contract verification"]
+            Gaps["Gap analysis\n(what reviewers missed)"]
+            Inv["Invariant sweep\n+ contract verification"]
         end
 
-        P2 --> Check{Fixes in\nthis cycle?}
-        Check -->|Yes| P1
+        Pass2 --> Fix2[Fix accepted findings]
+        Fix2 --> Check{Any fixes\nthis cycle?}
+        Check -->|Yes, restart| Pass1
         Check -->|No| CG["Challenge gate\n(adversarial review)"]
-        CG --> Done[Complete]
+        CG --> Done[Phase complete]
     end
 ```
 
@@ -136,45 +141,25 @@ Each phase begins with **prompt optimization** — enriching the raw task with r
 
 ## The review cycle
 
-The review cycle is the core quality mechanism. It runs inside every phase and keeps cycling until the artifact is clean.
+The review cycle is the core quality mechanism. It runs inside every phase and keeps cycling until the artifact is clean. The sequence is always: **Pass 1 → Fix → Pass 2 → Fix → Restart check → Challenge gate → Complete.**
 
-### Overview
+### Step 1: Risk classification
 
-```
-Pass 1 (External + Internal) → Fix → Pass 2 (Gaps + Validation) → Fix → Restart?
-                                                                          ↓ No
-                                                                    Challenge Gate
-                                                                          ↓
-                                                                      Complete
-```
+Every phase starts by classifying its risk level, which determines review depth:
 
-If **any** pass had fixes during a cycle, the entire sequence restarts from Pass 1. Maximum 3 restarts — after that, the task moves to `review/` for human intervention.
+| Level | Characteristics | What runs |
+|-------|----------------|-----------|
+| **LOW** | Single module, clear scope | External models + Pass 2 |
+| **MEDIUM** | Multi-module, new interfaces (default) | External + internal panel + Pass 2 |
+| **HIGH** | Critical paths, shared state | External + internal + Pass 2 + adversarial challenge |
 
-### Risk levels
+### Step 2: Pass 1 — External + internal reviews
 
-Review depth scales with risk. Every phase classifies its risk:
-
-| Level | Characteristics | Review depth |
-|-------|----------------|--------------|
-| **LOW** | Single module, clear scope | External models only + Pass 2 |
-| **MEDIUM** | Multi-module, new interfaces (default) | External + internal panel in parallel + Pass 2 |
-| **HIGH** | Critical paths, shared state, invariant-adjacent | External + internal + Pass 2 + adversarial challenge |
-
-### Pass 1: External + internal reviews
-
-Pass 1 runs two review tracks **in parallel**:
+Two review tracks run **in parallel**:
 
 #### External review panel
 
-Multiple AI models review the artifact independently via `external_review.py`. The script calls 4-7 models in parallel and returns structured findings.
-
-Three review modes:
-
-| Mode | Used for | Focus |
-|------|----------|-------|
-| `review` | Research, Design, Plan | Logical soundness, correctness, completeness, assumptions, alternatives |
-| `code` | Execute | Bugs, contract violations, edge cases, test coverage, data flow |
-| `challenge` | Challenge gate | Confirmation bias, wrong abstraction, dangerous omissions, blast radius |
+Multiple AI models review the artifact independently via `external_review.py`. The script calls 4-7 models in parallel and returns structured findings. Each model grades the artifact (A-F) and returns BLOCKING and ADVISORY findings with quoted evidence.
 
 Models are selected by risk level from a configurable roster (`review_models.json`):
 
@@ -184,11 +169,17 @@ MEDIUM: 5 models  (+ GPT)
 HIGH:   6+ models (+ adversarial challenger)
 ```
 
-Each model grades the artifact (A-F) and returns BLOCKING and ADVISORY findings with quoted evidence.
+Three review modes depending on the phase:
+
+| Mode | Used for | Focus |
+|------|----------|-------|
+| `review` | Research, Design, Plan | Logical soundness, correctness, completeness, assumptions, alternatives |
+| `code` | Execute | Bugs, contract violations, edge cases, test coverage, data flow |
+| `challenge` | Challenge gate | Confirmation bias, wrong abstraction, dangerous omissions, blast radius |
 
 #### Internal specialist panel
 
-Claude generates a tailored panel of 3-5 specialist reviewers based on the artifact's content:
+Claude generates a tailored panel of 3-5 specialist reviewers based on the artifact's content. Each specialist runs as a subagent with specific dimensions, exclusions, and personas — ensuring focused, non-overlapping coverage.
 
 | Role | Focus |
 |------|-------|
@@ -202,18 +193,24 @@ Claude generates a tailored panel of 3-5 specialist reviewers based on the artif
 | **Verification Coverage** | Test quality, assertion coverage, reproducibility |
 | **Integration Impact** | Cross-module dependencies, upstream/downstream effects |
 
-Each specialist runs as a subagent with specific dimensions, exclusions, and personas — ensuring focused, non-overlapping coverage.
-
 #### Synthesis
 
 All findings (external + internal) are pooled into a single synthesis:
 - Each finding classified as **BLOCKING** or **ADVISORY**
 - Cross-reviewer disagreements flagged (e.g. external says blocking, internal says fine)
-- Accepted findings trigger a **fix cycle** before moving to Pass 2
+- Accepted findings trigger a **fix cycle**
 
-### Pass 2: Validation
+### Step 3: Fix cycle
 
-After fixes from Pass 1, Pass 2 runs a different set of checks:
+Accepted BLOCKING findings are fixed:
+- Research / Design / Plan — revise the document
+- Execute — dispatch a subagent to implement fixes, run tests, verify green
+
+The revised artifact is written to disk after every fix cycle.
+
+### Step 4: Pass 2 — Gaps + validation
+
+A different set of checks runs on the fixed artifact:
 
 1. **Gap analysis** — A dedicated agent reads the full artifact AND all Pass 1 findings, looking for what every reviewer missed: unchallenged assumptions, cross-cutting concerns, internal contradictions, missing perspectives
 2. **Self-review** — Correctness, completeness, domain risks
@@ -223,20 +220,30 @@ After fixes from Pass 1, Pass 2 runs a different set of checks:
 6. **Contract verification** — Walk the task's requirements and anti-goals, confirm each is satisfied
 7. **Obligation ledger** — Verify all tracked claims, assumptions, and traces
 
-Accepted findings trigger another fix cycle, then check for cyclical restart.
+Accepted findings trigger another fix cycle.
 
-### Challenge gate
+### Step 5: Cyclical restart check
+
+If **any** pass had fixes during this cycle, the entire sequence restarts from Pass 1. This continues until a full cycle (Pass 1 + Pass 2) completes with zero fixes. Maximum 3 restarts — after that, the task moves to `review/` for human intervention.
+
+### Step 6: Challenge gate
 
 Triggers when both passes are clean OR always for HIGH risk tasks. An adversarial model reviews the artifact at a strategic level — questioning the framing, not the details:
 
-- Confirmation bias — is evidence selectively presented?
-- Wrong abstraction — is this solving the right problem?
-- Dangerous omissions — what failure modes are conspicuously absent?
-- Coupling and blast radius — what breaks when this ships?
+- **Confirmation bias** — is evidence selectively presented?
+- **Wrong abstraction** — is this solving the right problem?
+- **Dangerous omissions** — what failure modes are conspicuously absent?
+- **Coupling and blast radius** — what breaks when this ships?
 
-### Micro-learn
+Blocking findings loop back through another fix and restart check.
 
-After each review round, accepted findings that are generalizable are extracted and appended to CLAUDE.md as Known Patterns or Known Gotchas — building project memory over time.
+### Step 7: Complete
+
+When clean, the phase:
+1. Runs **micro-learn** — extracts generalizable findings into CLAUDE.md as Known Patterns or Known Gotchas, building project memory over time
+2. Writes a review synthesis file
+3. Commits the artifact
+4. Advances to the next phase (or pauses for human review, based on the strip)
 
 ---
 
