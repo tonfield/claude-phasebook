@@ -1,5 +1,6 @@
 {
   "GEMINI_API_KEY": "your-key-here",
   "KILOCODE_API_KEY": "your-key-here",
-  "ZAI_API_KEY": "your-key-here"
+  "ZAI_API_KEY": "your-key-here",
+  "MINIMAX_API_KEY": "your-key-here"
 }

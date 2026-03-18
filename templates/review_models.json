@@ -59,11 +59,11 @@
       "output_cost_per_mtok": 2.20
     },
     "minimax": {
-      "provider": "kilocode",
-      "model": "minimax/minimax-m2.5",
-      "context_window": 196608,
-      "max_output": 196608,
-      "input_cost_per_mtok": 0.25,
+      "provider": "minimax",
+      "model": "MiniMax-M2.7",
+      "context_window": 204800,
+      "max_output": 65536,
+      "input_cost_per_mtok": 0.30,
       "output_cost_per_mtok": 1.20
     }
   },
@@ -95,6 +95,11 @@
       "sdk": "openai",
       "base_url": "https://api.z.ai/api/coding/paas/v4",
       "base_url_env": "ZAI_BASE_URL"
+    },
+    "minimax": {
+      "api_key_env": "MINIMAX_API_KEY",
+      "sdk": "openai",
+      "base_url": "https://api.minimax.io/v1"
     }
   }
 }
