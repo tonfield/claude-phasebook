@@ -2,6 +2,16 @@
 
 A phased workflow framework for [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Structures AI-driven work into five phases — **Research, Design, Plan, Execute, Learn** — with multi-model review cycles, specialist panels, and task tracking.
 
+### Why phasebook?
+
+Claude Code is like a brilliant junior engineer — fast, capable, and eager to help, but it works best with structure. Without guidance, it jumps straight to implementation, skips research, makes unchecked assumptions, and produces work that nobody reviewed.
+
+Phasebook provides the structure: five phases that enforce the discipline of researching before designing, designing before planning, and planning before writing code. But structure alone isn't enough — work needs verification. That's why every phase runs a multi-model review cycle where 4-7 independent AI models challenge the output, a specialist panel checks for blind spots, and an obligation ledger tracks every claim and assumption until it's proven or disproven.
+
+The whole process is fully automated — from idea to researched, designed, planned, implemented, and reviewed code. You control how much oversight you want per phase: auto-advance the phases you trust, pause for human review on the ones that matter. Task management is just the filesystem — create a markdown file, move it between folders, rename it to reprioritize. No databases, no web UI, no accounts.
+
+And after every task, the Learn phase extracts what worked, what failed, and what the reviewers caught — writing it back into the project's knowledge base so the same mistake never happens twice. Over time, your project accumulates patterns, gotchas, and architectural decisions that make every subsequent task smarter than the last.
+
 ```mermaid
 flowchart LR
     R[Research] --> D[Design] --> P[Plan] --> E[Execute] --> L[Learn]
