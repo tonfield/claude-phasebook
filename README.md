@@ -40,12 +40,6 @@ Phasebook turns Claude Code into a disciplined engineering workflow. Each task m
 pip install "git+https://github.com/tonfield/claude-phasebook.git"
 ```
 
-For development:
-```bash
-git clone https://github.com/tonfield/claude-phasebook.git ~/projects/phasebook
-cd ~/projects/phasebook
-pip install -e .
-```
 
 ## Quick start
 
@@ -405,6 +399,16 @@ cd ~/projects/phasebook && git pull
 cd ~/projects/my-project
 phasebook update --check   # See what changed
 phasebook update           # Apply updates
+```
+
+## Development
+
+To modify phasebook itself, clone and install in editable mode (changes take effect without reinstalling):
+
+```bash
+git clone https://github.com/tonfield/claude-phasebook.git ~/projects/phasebook
+cd ~/projects/phasebook
+pip install -e .
 ```
 
 ## Requirements
