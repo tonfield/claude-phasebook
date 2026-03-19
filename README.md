@@ -1,38 +1,38 @@
 # phasebook
 
-A phased workflow framework for [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Structures AI-driven work into five phases — **Research, Design, Plan, Execute, Learn** — with multi-model review cycles, specialist panels, and task tracking.
+A phased workflow framework for [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Structures AI-driven work into five phases (**Research, Design, Plan, Execute, Learn**) with multi-model review cycles, specialist panels, and task tracking.
 
 ### Why phasebook?
 
-Claude Code is like a brilliant junior engineer — fast, capable, and eager to help, but it works best with structure. Without guidance, it jumps straight to implementation, skips research, makes unchecked assumptions, and produces work that nobody reviewed.
+Claude Code is like a brilliant junior engineer: fast, capable, and eager to help, but it works best with structure. Without guidance, it jumps straight to implementation, skips research, makes unchecked assumptions, and produces work that nobody reviewed.
 
-Phasebook provides the structure: five phases that enforce the discipline of researching before designing, designing before planning, and planning before writing code. But structure alone isn't enough — work needs verification. That's why every phase runs a multi-model review cycle where 4-7 independent AI models challenge the output, a specialist panel checks for blind spots, and an obligation ledger tracks every claim and assumption until it's proven or disproven.
+Phasebook provides the structure: five phases that enforce the discipline of researching before designing, designing before planning, and planning before writing code. But structure alone isn't enough. Work needs verification. That's why every phase runs a multi-model review cycle where 4-7 independent AI models challenge the output, a specialist panel checks for blind spots, and an obligation ledger tracks every claim and assumption until it's proven or disproven.
 
-The whole process is fully automated — from idea to researched, designed, planned, implemented, and reviewed code. Start with a rough idea and the framework shapes it into a rigorous task specification: tightening vague requirements into verifiable acceptance criteria, generating anti-goals to prevent scope creep, classifying risk, recommending review gates, and enriching context from your codebase and prior work. The task spec itself goes through an external review cycle before any phase work begins. You control how much oversight you want per phase: auto-advance the phases you trust, pause for human review on the ones that matter. Task management is the filesystem — move files between folders, rename to reprioritize. No databases, no web UI, no accounts.
+The whole process is fully automated, from idea to researched, designed, planned, implemented, and reviewed code. Start with a rough idea and the framework shapes it into a rigorous task specification: tightening vague requirements into verifiable acceptance criteria, generating anti-goals to prevent scope creep, classifying risk, recommending review gates, and enriching context from your codebase and prior work. The task spec itself goes through an external review cycle before any phase work begins. You control how much oversight you want per phase: auto-advance the phases you trust, pause for human review on the ones that matter. Task management is the filesystem: move files between folders, rename to reprioritize. No databases, no web UI, no accounts.
 
-And after every task, the Learn phase extracts what worked, what failed, and what the reviewers caught — writing it back into the project's knowledge base so the same mistake never happens twice. Over time, your project accumulates patterns, gotchas, and architectural decisions that make every subsequent task smarter than the last.
+And after every task, the Learn phase extracts what worked, what failed, and what the reviewers caught, writing it back into the project's knowledge base so the same mistake never happens twice. Over time, your project accumulates patterns, gotchas, and architectural decisions that make every subsequent task smarter than the last.
 
 ```mermaid
 flowchart LR
     R[Research] --> D[Design] --> P[Plan] --> E[Execute] --> L[Learn]
 ```
 
-> Each phase runs a full **review cycle** before advancing — see [The review cycle](#the-review-cycle) below.
+> Each phase runs a full **review cycle** before advancing. See [The review cycle](#the-review-cycle) below.
 
 ## What it does
 
 Phasebook turns Claude Code into a disciplined engineering workflow. Each task moves through phases, with review gates between them. You control the pace: auto-advance phases you trust, pause for review on phases that need human judgment.
 
 **Key features:**
-- **Phased workflow** — Research → Design → Plan → Execute → Learn, each with structured artifacts
-- **Multi-model external reviews** — 4-7 AI models review every artifact in parallel, catching different things
-- **Specialist internal panel** — 3-5 role-based reviewers (logical consistency, completeness, codebase verification, domain accuracy, risk analysis)
-- **Cyclical review** — fix cycles restart the review until clean, up to 3 restarts
-- **Obligation ledger** — tracks every claim, assumption, and integration point through the pipeline
-- **Task decomposition** — fan-out/fan-in for tasks too large for a single context window
-- **Token cost tracking** — per task, per phase, per model
-- **Concurrent workers** — multiple Claude Code sessions process tasks in parallel on main
-- **Human feedback** — `>>` markers in any artifact for inline feedback, questions, or overrides
+- **Phased workflow**: Research, Design, Plan, Execute, Learn, each with structured artifacts
+- **Multi-model external reviews**: 4-7 AI models review every artifact in parallel, catching different things
+- **Specialist internal panel**: 3-5 role-based reviewers (logical consistency, completeness, codebase verification, domain accuracy, risk analysis)
+- **Cyclical review**: fix cycles restart the review until clean, up to 3 restarts
+- **Obligation ledger**: tracks every claim, assumption, and integration point through the pipeline
+- **Task decomposition**: fan-out/fan-in for tasks too large for a single context window
+- **Token cost tracking**: per task, per phase, per model
+- **Concurrent workers**: multiple Claude Code sessions process tasks in parallel on main
+- **Human feedback**: `>>` markers in any artifact for inline feedback, questions, or overrides
 
 ## Install
 
@@ -84,7 +84,7 @@ Task filenames encode metadata: `<priority>.<strip>.<slug>.md`
 - **Strip** (4 chars): controls per-phase review gates
 - **Slug**: kebab-case identifier
 
-Example: `1.--++.add-auth.md` — priority 1, review Research and Design, auto-advance Plan and Execute.
+Example: `1.--++.add-auth.md` = priority 1, review Research and Design, auto-advance Plan and Execute.
 
 ### The strip
 
@@ -116,13 +116,13 @@ Common patterns:
 | **Execute** | Implement code per plan steps, dispatched to subagents | Code changes + `phasebook/executions/` |
 | **Learn** | Extract patterns, update system knowledge, docs | `phasebook/learnings/<date>-<slug>.md` |
 
-Each phase begins with **prompt optimization** — enriching the raw task with relevant context from CLAUDE.md, prior artifacts, and the codebase. Phases scale by adjusting depth, not by skipping phases.
+Each phase begins with **prompt optimization**, enriching the raw task with relevant context from CLAUDE.md, prior artifacts, and the codebase. Phases scale by adjusting depth, not by skipping phases.
 
 ---
 
 ## The review cycle
 
-The review cycle is the core quality mechanism. It runs inside every phase and keeps cycling until the artifact is clean. The sequence is always: **Pass 1 → Fix → Pass 2 → Fix → Restart check → Challenge gate → Complete.**
+The review cycle is the core quality mechanism. It runs inside every phase and keeps cycling until the artifact is clean. The sequence is always: **Pass 1 > Fix > Pass 2 > Fix > Restart check > Challenge gate > Complete.**
 
 ```mermaid
 flowchart TD
@@ -148,7 +148,7 @@ Every phase starts by classifying its risk level, which determines review depth:
 | **MEDIUM** | Multi-module, new interfaces (default) | External + internal panel + Pass 2 |
 | **HIGH** | Critical paths, shared state | External + internal + Pass 2 + adversarial challenge |
 
-### Step 2: Pass 1 — External + internal reviews
+### Step 2: Pass 1 (External + internal reviews)
 
 Two review tracks run **in parallel**:
 
@@ -174,7 +174,7 @@ Three review modes depending on the phase:
 
 #### Internal specialist panel
 
-Claude generates a tailored panel of 3-5 specialist reviewers based on the artifact's content. Each specialist runs as a subagent with specific dimensions, exclusions, and personas — ensuring focused, non-overlapping coverage.
+Claude generates a tailored panel of 3-5 specialist reviewers based on the artifact's content. Each specialist runs as a subagent with specific dimensions, exclusions, and personas, ensuring focused, non-overlapping coverage.
 
 | Role | Focus |
 |------|-------|
@@ -198,44 +198,44 @@ All findings (external + internal) are pooled into a single synthesis:
 ### Step 3: Fix cycle
 
 Accepted BLOCKING findings are fixed:
-- Research / Design / Plan — revise the document
-- Execute — dispatch a subagent to implement fixes, run tests, verify green
+- Research / Design / Plan: revise the document
+- Execute: dispatch a subagent to implement fixes, run tests, verify green
 
 The revised artifact is written to disk after every fix cycle.
 
-### Step 4: Pass 2 — Gaps + validation
+### Step 4: Pass 2 (Gaps + validation)
 
 A different set of checks runs on the fixed artifact:
 
-1. **Gap analysis** — A dedicated agent reads the full artifact AND all Pass 1 findings, looking for what every reviewer missed: unchallenged assumptions, cross-cutting concerns, internal contradictions, missing perspectives
-2. **Self-review** — Correctness, completeness, domain risks
-3. **Interface verification** — For designs/plans: verify every claimed function exists, signatures match, return types are correct (reads actual source code)
-4. **Invariant sweep** — Walk every architectural invariant and design constraint in CLAUDE.md — not selectively, the full list
-5. **Documentation consistency** — Check against architecture docs for contradictions
-6. **Contract verification** — Walk the task's requirements and anti-goals, confirm each is satisfied
-7. **Obligation ledger** — Verify all tracked claims, assumptions, and traces
+1. **Gap analysis**: a dedicated agent reads the full artifact AND all Pass 1 findings, looking for what every reviewer missed (unchallenged assumptions, cross-cutting concerns, internal contradictions, missing perspectives)
+2. **Self-review**: correctness, completeness, domain risks
+3. **Interface verification**: for designs/plans, verify every claimed function exists, signatures match, return types are correct (reads actual source code)
+4. **Invariant sweep**: walk every architectural invariant and design constraint in CLAUDE.md, not selectively, the full list
+5. **Documentation consistency**: check against architecture docs for contradictions
+6. **Contract verification**: walk the task's requirements and anti-goals, confirm each is satisfied
+7. **Obligation ledger**: verify all tracked claims, assumptions, and traces
 
 Accepted findings trigger another fix cycle.
 
 ### Step 5: Cyclical restart check
 
-If **any** pass had fixes during this cycle, the entire sequence restarts from Pass 1. This continues until a full cycle (Pass 1 + Pass 2) completes with zero fixes. Maximum 3 restarts — after that, the task moves to `review/` for human intervention.
+If **any** pass had fixes during this cycle, the entire sequence restarts from Pass 1. This continues until a full cycle (Pass 1 + Pass 2) completes with zero fixes. Maximum 3 restarts; after that, the task moves to `review/` for human intervention.
 
 ### Step 6: Challenge gate
 
-Triggers when both passes are clean OR always for HIGH risk tasks. An adversarial model reviews the artifact at a strategic level — questioning the framing, not the details:
+Triggers when both passes are clean OR always for HIGH risk tasks. An adversarial model reviews the artifact at a strategic level, questioning the framing, not the details:
 
-- **Confirmation bias** — is evidence selectively presented?
-- **Wrong abstraction** — is this solving the right problem?
-- **Dangerous omissions** — what failure modes are conspicuously absent?
-- **Coupling and blast radius** — what breaks when this ships?
+- **Confirmation bias**: is evidence selectively presented?
+- **Wrong abstraction**: is this solving the right problem?
+- **Dangerous omissions**: what failure modes are conspicuously absent?
+- **Coupling and blast radius**: what breaks when this ships?
 
 Blocking findings trigger a fix cycle and restart the full sequence from Pass 1.
 
 ### Step 7: Complete
 
 When clean, the phase:
-1. Runs **micro-learn** — extracts generalizable findings into CLAUDE.md as Known Patterns or Known Gotchas, building project memory over time
+1. Runs **micro-learn**: extracts generalizable findings into CLAUDE.md as Known Patterns or Known Gotchas, building project memory over time
 2. Writes a review synthesis file
 3. Commits the artifact
 4. Advances to the next phase (or pauses for human review, based on the strip)
@@ -251,26 +251,26 @@ The obligation ledger tracks factual claims and assumptions made during any phas
 | **CLAIM** | "scanner.py calls calculate_threshold()" | Read source, verify signature |
 | **NEGATION** | "no other callers of _rebuild_cache()" | Exhaustive grep, document search scope |
 | **ASSUMPTION** | "FlexQuery has access to exit_rule" | Test, verify, or flag as unverified |
-| **TRACE** | "entry_cost flows: transform → db → dashboard" | Verify each hop in the chain |
+| **TRACE** | "entry_cost flows: transform > db > dashboard" | Verify each hop in the chain |
 | **FIX_IMPACT** | "changed parameter X that has dependents" | Check each caller/consumer |
 
-Evidence must include the tool command and result — not just a file:line pointer. Each phase has an "unverified budget" — Execute has zero tolerance; Research allows bounded assumptions.
+Evidence must include the tool command and result, not just a file:line pointer. Each phase has an "unverified budget": Execute has zero tolerance; Research allows bounded assumptions.
 
 ## Task decomposition
 
 For tasks too large for a single context window (3+ independent sub-areas), phasebook decomposes work using a fan-out/fan-in pattern:
 
-1. **Shared context map** — Orchestrator builds a domain map / interface skeleton / change surface
-2. **Fan-out** — Independent sub-areas dispatched to parallel subagents with structured briefings
-3. **Dependency contracts** — Each subagent declares assumptions about other sub-areas
-4. **Synthesis** — Orchestrator combines deliverables, validates contracts, writes the artifact
-5. **Integration verification** — Dedicated verifier checks fidelity, contradictions, and dropped information
+1. **Shared context map**: orchestrator builds a domain map / interface skeleton / change surface
+2. **Fan-out**: independent sub-areas dispatched to parallel subagents with structured briefings
+3. **Dependency contracts**: each subagent declares assumptions about other sub-areas
+4. **Synthesis**: orchestrator combines deliverables, validates contracts, writes the artifact
+5. **Integration verification**: dedicated verifier checks fidelity, contradictions, and dropped information
 
 Max 2 remediation loops before escalating to re-decomposition or sequenced execution.
 
 ## Feedback
 
-Add `>>` to any file in `phasebook/` to leave feedback. The worker reads intent from context — feedback, question, approval, or override — and resolves markers in the next revision.
+Add `>>` to any file in `phasebook/` to leave feedback. The worker reads intent from context (feedback, question, approval, or override) and resolves markers in the next revision.
 
 ```markdown
 >> This assumption about the API seems wrong, check the docs
@@ -295,10 +295,10 @@ phasebook index             # Overview of all tasks across folders
 phasebook status <slug>     # Detailed status of a specific task
 
 # Task management
-phasebook submit <slug>     # drafts/ → queue/
-phasebook approve <slug>    # review/ → queue/
-phasebook pause <slug>      # queue/ → drafts/
-phasebook archive <slug>    # completed/ → archived/
+phasebook submit <slug>     # drafts/ > queue/
+phasebook approve <slug>    # review/ > queue/
+phasebook pause <slug>      # queue/ > drafts/
+phasebook archive <slug>    # completed/ > archived/
 phasebook reprioritize <slug> <N>   # Change priority (1-9)
 phasebook strip <slug> <strip>      # Change strip (e.g. --++)
 
@@ -314,7 +314,7 @@ Use these inside Claude Code conversations:
 | Command | Purpose |
 |---|---|
 | `/draft <task>` | Create a task with smart enrichment and review |
-| `/phasebook` | Start the worker loop — processes tasks from queue |
+| `/phasebook` | Start the worker loop, processes tasks from queue |
 | `/phasebook stop` | Stop the worker after the current phase completes |
 | `/index` | Show the task index (calls `phasebook index`) |
 | `/status <slug>` | Executive overview of a task (calls `phasebook status`) |
