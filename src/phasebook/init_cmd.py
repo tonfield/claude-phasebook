@@ -190,13 +190,13 @@ def _resolve_hook_paths(settings_path: Path, project_root: Path) -> None:
                 # Replace relative script refs with absolute
                 if "phasebook_context.py" in cmd and str(scripts_dir) not in cmd:
                     hook["command"] = cmd.replace(
-                        "phasebook_context.py",
+                        ".claude/scripts/phasebook_context.py",
                         str(scripts_dir / "phasebook_context.py"),
                     )
                     modified = True
                 if "token_usage.py" in cmd and str(scripts_dir) not in cmd:
                     hook["command"] = cmd.replace(
-                        "token_usage.py",
+                        ".claude/scripts/token_usage.py",
                         str(scripts_dir / "token_usage.py"),
                     )
                     modified = True
