@@ -1,2 +1,2 @@
-recursive-include framework *
-recursive-include templates *
+recursive-include src/phasebook/framework *
+recursive-include src/phasebook/templates *

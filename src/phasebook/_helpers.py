@@ -31,12 +31,12 @@ def get_phasebook_dir(project_root: Path) -> Path:
 
 def get_framework_dir() -> Path:
     """Locate the bundled framework files in the installed package."""
-    return Path(__file__).resolve().parent.parent.parent / "framework"
+    return Path(__file__).resolve().parent / "framework"
 
 
 def get_templates_dir() -> Path:
     """Locate the bundled template files in the installed package."""
-    return Path(__file__).resolve().parent.parent.parent / "templates"
+    return Path(__file__).resolve().parent / "templates"
 
 
 def get_framework_version(project_root: Path) -> str | None:
