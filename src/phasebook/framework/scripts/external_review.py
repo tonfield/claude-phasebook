@@ -10,10 +10,15 @@ Dependencies:
     pip install google-genai           # Optional: native Gemini with thinking
     pip install httpx[socks]           # Required if SOCKS proxy is active (ALL_PROXY env)
 
-API Keys (resolution order):
-    1. ~/.config/phasebook/api_keys.json (machine-wide)
-    2. Environment variables (GEMINI_API_KEY, KILOCODE_API_KEY, ZAI_API_KEY)
-    3. .claude/scripts/api_keys.json (project-local, gitignored)
+Configuration (resolution order):
+    review_models.json:
+        1. ~/.config/phasebook/review_models.json (machine-wide)
+        2. .claude/scripts/review_models.json (project-local)
+
+    API keys:
+        1. ~/.config/phasebook/api_keys.json (machine-wide)
+        2. Environment variables (GEMINI_API_KEY, KILOCODE_API_KEY, ZAI_API_KEY)
+        3. .claude/scripts/api_keys.json (project-local, gitignored)
 
 Usage:
     # Standard review (risk selects models, mode selects prompt+roster)
@@ -68,7 +73,20 @@ except ImportError:
 # ---------------------------------------------------------------------------
 
 _SCRIPT_DIR = Path(__file__).parent
-_CONFIG_FILE = _SCRIPT_DIR / "review_models.json"
+
+
+def _find_config_file() -> Path:
+    """Find review_models.json using resolution order."""
+    # 1. Machine-wide
+    machine_wide = Path.home() / ".config" / "phasebook" / "review_models.json"
+    if machine_wide.exists():
+        return machine_wide
+
+    # 2. Project-local (next to this script)
+    return _SCRIPT_DIR / "review_models.json"
+
+
+_CONFIG_FILE = _find_config_file()
 
 _API_TIMEOUT_S = 180
 _MAX_RETRIES = 2
